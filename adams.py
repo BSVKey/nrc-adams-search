@@ -122,14 +122,15 @@ def summarize(result: dict) -> list[dict]:
     rows = []
     for item in result.get("results", []) or []:
         d = item.get("document", {}) or {}
+        # fields can be present but null, so coerce everything to str
         rows.append(
             {
-                "accession": d.get("AccessionNumber", ""),
-                "date": d.get("DocumentDate", ""),
-                "type": _first(d.get("DocumentType")),
-                "docket": _first(d.get("DocketNumber")),
-                "title": d.get("DocumentTitle") or d.get("Name", ""),
-                "url": d.get("Url", ""),
+                "accession": d.get("AccessionNumber") or "",
+                "date": d.get("DocumentDate") or "",
+                "type": _first(d.get("DocumentType")) or "",
+                "docket": _first(d.get("DocketNumber")) or "",
+                "title": d.get("DocumentTitle") or d.get("Name") or "",
+                "url": d.get("Url") or "",
             }
         )
     return rows

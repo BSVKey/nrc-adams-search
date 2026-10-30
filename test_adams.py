@@ -80,6 +80,11 @@ class AdamsTests(unittest.TestCase):
         self.assertEqual(rows[0]["docket"], "05000373, 05000374")
         self.assertEqual(rows[0]["type"], "Inspection Report, Letter")
 
+    def test_summarize_null_fields(self):
+        rows = adams.summarize({"results": [{"document": {"AccessionNumber": "ML1", "DocumentDate": None,
+                                                          "DocumentType": None, "DocumentTitle": None}}]})
+        self.assertEqual((rows[0]["date"], rows[0]["type"], rows[0]["title"]), ("", "", ""))
+
     def test_missing_key(self):
         import os
 
