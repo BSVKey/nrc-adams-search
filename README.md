@@ -24,7 +24,10 @@ python adams.py search microreactor --since 2026-01-01
 python adams.py search --preset part57
 python adams.py search --preset inspections --filter "DocketNumber:starts:05000373"
 python adams.py get ML24017A120
+python adams.py text ML26155A114            # save the full indexed text to ML26155A114.txt
 ```
+
+The key is read from `ADAMS_API_KEY`. On Windows a key saved for your user is found even before you open a new terminal, and stray spaces, quotes or `< >` around it are ignored.
 
 Presets: `part53`, `part57`, `microreactor`, `part21`, `topical`, `inspections`.
 Filters are `FIELD:OPERATOR:VALUE`. The operators are contains, notcontains, starts, notstarts, equals and notequals.

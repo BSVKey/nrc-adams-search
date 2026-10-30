@@ -85,14 +85,47 @@ class AdamsTests(unittest.TestCase):
                                                           "DocumentType": None, "DocumentTitle": None}}]})
         self.assertEqual((rows[0]["date"], rows[0]["type"], rows[0]["title"]), ("", "", ""))
 
+    def test_newest_jumps_to_last_page(self):
+        def page(dates):
+            return {"count": 3, "results": [{"document": {"AccessionNumber": f"ML{d}", "DocumentDate": d}} for d in dates]}
+
+        pages = [page(["2026-01-01", "2026-02-01"]), page(["2026-02-01", "2026-03-01"])]
+
+        class Seq(Recorder):
+            def __call__(self, req, timeout=None):
+                self.reqs.append(req)
+                return FakeResp(json.dumps(pages.pop(0)).encode())
+
+        seq = Seq(None)
+        total, rows = adams.AdamsClient(api_key="k", opener=seq).newest(5, q="x")
+        self.assertEqual(total, 3)
+        self.assertEqual(json.loads(seq.reqs[1].data)["skip"], 1)
+        self.assertEqual([r["date"] for r in rows], ["2026-03-01", "2026-02-01"])
+
+    def test_clean_key(self):
+        self.assertEqual(adams.clean_key(" <abc123> "), "abc123")
+        self.assertEqual(adams.clean_key("'abc123'"), "abc123")
+        rec = Recorder(SAMPLE)
+        adams.AdamsClient(api_key="<k>", opener=rec).search(q="x")
+        self.assertEqual(rec.reqs[0].get_header("Ocp-apim-subscription-key"), "k")
+
+    def test_document_text(self):
+        self.assertEqual(adams.document_text({"content": " plain text "}), "plain text")
+        pkg = {"content": "<!DOCTYPE html><html><body><h1>Pkg</h1><ul><li>ML1, Title: A</li></ul></body></html>"}
+        self.assertIn("- ML1, Title: A", adams.document_text(pkg))
+        self.assertEqual(adams.document_text({"content": None}), "")
+
     def test_missing_key(self):
         import os
 
         old = os.environ.pop("ADAMS_API_KEY", None)
+        real = adams._windows_user_env
+        adams._windows_user_env = lambda name: ""
         try:
             with self.assertRaises(adams.AdamsError):
                 adams.AdamsClient()
         finally:
+            adams._windows_user_env = real
             if old:
                 os.environ["ADAMS_API_KEY"] = old
 

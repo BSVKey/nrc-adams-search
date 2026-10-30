@@ -39,7 +39,8 @@ TOOLS = [
                 },
                 "since": {"type": "string", "description": "DocumentDate on or after YYYY-MM-DD"},
                 "until": {"type": "string", "description": "DocumentDate on or before YYYY-MM-DD"},
-                "skip": {"type": "integer", "minimum": 0},
+                "limit": {"type": "integer", "minimum": 1, "description": "newest N results (default 25)"},
+                "skip": {"type": "integer", "minimum": 0, "description": "raw paging, oldest-first; omit for newest-first"},
             },
         },
     },
@@ -72,8 +73,11 @@ def call_tool(name: str, args: dict, client_factory=adams.AdamsClient) -> str:
         if args.get("until"):
             filters.append(adams.date_filter("DocumentDate", "le", args["until"]))
         kwargs["filters"] = filters
-        res = client.search(skip=int(args.get("skip", 0)), **kwargs)
-        return json.dumps({"count": res.get("count"), "results": adams.summarize(res)}, indent=2)
+        if args.get("skip"):
+            res = client.search(skip=int(args["skip"]), **kwargs)
+            return json.dumps({"count": res.get("count"), "results": adams.summarize(res)}, indent=2)
+        total, rows = client.newest(int(args.get("limit", 25)), **kwargs)
+        return json.dumps({"count": total, "results": rows, "order": "newest first"}, indent=2)
     if name == "adams_get":
         doc = client.get(args["accession"])
         d = dict(doc.get("document", doc))
